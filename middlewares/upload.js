@@ -10,6 +10,6 @@ const upload = multer({
             cb(null, filename)
         }
     })
-}).array('filePath',5)
-
+}).single('filePath')
+    
 module.exports = upload;

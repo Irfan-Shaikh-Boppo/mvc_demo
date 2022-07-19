@@ -12,8 +12,6 @@ app.use(express.json())
 // app.use(morgan('dev '));
 
 app.use('/', commonR);
-app.use('/register', commonR);
-app.use('/login', commonR);
 
 app.use('/admin', adminR);
 

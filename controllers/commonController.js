@@ -1,11 +1,14 @@
-const bodyParser = require('body-parser');
 const User = require("../models/user");
-const bcrypt = require("bcryptjs");
+const oldUserService = require("../services/getOldUser");
+const Product = require('../models/addProduct');
+const encdec = require('../middlewares/encrypt-decrypt');
 const jwt = require("jsonwebtoken");
 
 
-const productLists = (req,res) => {
-    res.send('Product Lists')
+const productLists = async(req,res) => {
+    // res.send('Product Lists');
+    const productData = await Product.find({});
+    res.status(201).json({total: productData.length, productLists : productData});
 }
 
 const registerUsers = async(req,res) => {
@@ -14,13 +17,15 @@ const registerUsers = async(req,res) => {
         if(!(first_name && last_name && email && password && utype)) {
             res.status(400).send('All input is required');
         }
+        
+        const oldUser = oldUserService.getOldUser(email);
 
-        const oldUser = await User.findOne({ email });
         if(oldUser){
             return res.status(409).send('User already exists. Please Login');
         }
 
-        encryptedPassword = await bcrypt.hash(password, 10);
+        // encryptedPassword = await bcrypt.hash(password, 10);
+        encryptedPassword = encdec.text_hash(password);
 
         const user = new User({
             first_name: first_name,
@@ -37,7 +42,7 @@ const registerUsers = async(req,res) => {
             email: email,
             utype: utype
         },process.env.TOKEN_KEY,{
-            expiresIn: '10m'
+            expiresIn: '30m'
         })
 
         user.token = token;
@@ -58,21 +63,23 @@ const loginUser = async(req,res) => {
 
         const user = await User.findOne({ email });
 
-        if(user && (await bcrypt.compare(password, user.password))){
+        const compare = encdec.compare_hash(password, user.password)
+
+        if(user && compare ){
 
         const token = jwt.sign({
             user_id: user._id,
             email: email,
             utype: user.utype
         },process.env.TOKEN_KEY,{
-            expiresIn: '10m'
+            expiresIn: '30m'
         })
 
         user.token = token;
 
         res.status(200).json(user.token);
     }
-    res.send('Invalid Credentials');
+    // res.send('Invalid Credentials');
 
     } catch (error) {
         console.log(error);
